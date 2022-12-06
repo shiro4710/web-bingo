@@ -51,9 +51,7 @@ const AdminView = () => {
 
   useEffect(() => {
     console.log("websocket create");
-    const socket = new WebSocket(
-      "wss://ec2-18-183-120-252.ap-northeast-1.compute.amazonaws.com:8000"
-    );
+    const socket = new WebSocket("ws://bingo.f5.si:8000");
     webSocketRef.current = socket;
 
     socket.addEventListener("open", (event) => {
