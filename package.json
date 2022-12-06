@@ -30,6 +30,8 @@
     "@types/jest": "^29.2.2",
     "@types/react-test-renderer": "^18.0.0",
     "@types/styled-components": "^5.1.26",
+    "@types/websocket": "^1.0.5",
+    "@types/ws": "^8.5.3",
     "@typescript-eslint/eslint-plugin": "^5.42.1",
     "@typescript-eslint/parser": "^5.42.1",
     "autoprefixer": "^10.4.13",
@@ -43,12 +45,15 @@
     "fs": "^0.0.1-security",
     "jest": "^29.3.0",
     "jest-environment-jsdom": "^29.3.0",
+    "nodemon": "^2.0.20",
     "postcss": "^8.4.18",
     "prettier": "^2.7.1",
     "react-test-renderer": "^18.2.0",
     "tailwindcss": "^3.2.2",
     "ts-jest": "^29.0.3",
     "ts-node": "^10.9.1",
-    "twin.macro": "^3.0.0"
+    "twin.macro": "^3.0.0",
+    "websocket": "^1.0.34",
+    "ws": "^8.11.0"
   }
 }

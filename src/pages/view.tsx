@@ -1,7 +1,7 @@
 import { css } from "@emotion/css";
+import { useEffect, useRef, useState } from "react";
 import { PageHeader } from "@/components/header";
 import "twin.macro";
-import { useEffect, useRef, useState } from "react";
 
 interface NumProps {
   number: number;
@@ -41,31 +41,69 @@ const userStyle = css`
 `;
 
 const AdminView = () => {
-  const roomName = "ルーム名";
-  const reachUsers: string[] = ["aa user", "ab user"];
-  const bingoUsers: string[] = ["bb user"];
-  const numbers = [
-    1, 2, 5, 6, 78, 9, 10, 1, 2, 5, 6, 78, 9, 10, 1, 2, 5, 6, 78, 9, 10, 1, 2,
-    5, 6, 78, 9, 10, 1, 2, 5, 6, 78, 9, 10, 1, 2, 5, 6, 78, 9, 10,
-  ];
-  const [message, setMessage] = useState("");
+  const [roomName, setRoomName] = useState("");
+  const [reachUsers, setReachUsers]: [string[], any] = useState([]);
+  const [bingoUsers, setBingoUsers]: [string[], any] = useState([]);
+  const [numbers, setNumbers]: [number[], any] = useState([]);
   const webSocketRef = useRef<WebSocket>();
+  const [number, setNumber]: [[number, number], any] = useState([0, 0]);
+  const intervalRef = useRef<NodeJS.Timer>();
 
   useEffect(() => {
-    const socket = new WebSocket("ws://localhost:8080");
+    console.log("websocket create");
+    const socket = new WebSocket("ws://localhost:8000");
     webSocketRef.current = socket;
 
+    socket.addEventListener("open", (event) => {
+      const obj = {
+        type: "login",
+        user: "view",
+      };
+
+      socket.send(JSON.stringify(obj));
+    });
+
     socket.addEventListener("message", (event) => {
-      setMessage(event.data);
+      const obj = JSON.parse(event.data);
+
+      if (obj["type"] === "connect") {
+        setNumbers(obj["numbers"]);
+        setRoomName(obj["roomName"]);
+      }
+
+      if (obj["type"] === "random-start") {
+        // ルーレット開始
+        intervalRef.current = setInterval(() => {
+          setNumber([
+            Math.floor(Math.random() * 10),
+            Math.floor(Math.random() * 10),
+          ]);
+        }, 100);
+      }
+
+      if (obj["type"] === "random-stop") {
+        clearInterval(intervalRef.current);
+      }
+
+      if (obj["type"] === "add") {
+        clearInterval(intervalRef.current);
+        setNumbers([...numbers, obj["number"] as number]);
+        setNumber([Math.floor(obj["number"] / 10), obj["number"] % 10]);
+        setReachUsers(obj["reachs"]);
+        setBingoUsers(obj["bingos"]);
+      }
+
+      if (obj["type"] === "reset") {
+        location.reload();
+      }
     });
 
     return () => socket.close();
-  }, []);
+  }, numbers);
 
   return (
     <div tw="text-center">
       <PageHeader />
-      <div>{message}</div>
       <div tw="text-4xl">{roomName}</div>
       <div tw="text-xl">
         <div tw="my-4">
@@ -90,8 +128,8 @@ const AdminView = () => {
         </div>
       </div>
       <div tw="flex justify-center">
-        <BigNumber number={0} />
-        <BigNumber number={1} />
+        <BigNumber number={number[0]} />
+        <BigNumber number={number[1]} />
       </div>
       <div tw="px-20 my-6 flex flex-wrap items-start">
         {numbers.map((num) => (

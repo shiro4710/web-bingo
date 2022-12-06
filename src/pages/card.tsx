@@ -1,36 +1,124 @@
 import "twin.macro";
 import { css } from "@emotion/css";
+import { useEffect, useRef, useState } from "react";
 import tw from "twin.macro";
 import { CardComponent } from "@/components/card/card";
 import { PageHeader } from "@/components/header";
 
+const formStyle = css`
+  border: 1px solid black;
+`;
+
 const Card = () => {
-  const numbers = [
-    [1, 6, 11, 16, 21],
-    [2, 7, 12, 17, 22],
-    [3, 8, 13, 18, 23],
-    [4, 9, 14, 19, 24],
-    [5, 10, 15, 20, 25],
-  ];
-  const roomName = "ルーム名";
-  const userName = "ユーザー名";
-  const isReach = false;
-  const isBingo = false;
+  const [roomName, setRoomName] = useState("");
+  const [userName, setUserName] = useState("");
+  const [status, setStatus] = useState("　");
   const statusStyle = css`
-    ${tw`text-2xl my-6 ${isBingo || isReach ? "underline" : ""}`}
+    ${tw`text-2xl my-6`}
+    ${status !== "　" ? tw`underline` : ""}
   `;
+  const [numbers, setNumbers]: [number[], any] = useState([]);
+  const [cardNums, setCardNums]: [number[][], any] = useState([]);
+  const webSocketRef = useRef<WebSocket>();
+
+  if (
+    userName !== "" &&
+    cardNums.length === 0 &&
+    webSocketRef.current !== undefined
+  ) {
+    const obj = {
+      type: "login",
+      user: userName,
+    };
+
+    webSocketRef.current.send(JSON.stringify(obj));
+  }
+
+  useEffect(() => {
+    console.log("websocket create");
+    const socket = new WebSocket("ws://localhost:8000");
+    webSocketRef.current = socket;
+
+    socket.addEventListener("open", (event) => {
+      if (userName !== "") {
+        const obj = {
+          type: "login",
+          user: userName,
+        };
+
+        socket.send(JSON.stringify(obj));
+      }
+    });
+
+    socket.addEventListener("message", (event) => {
+      const obj = JSON.parse(event.data);
+      console.log(obj);
+
+      if (obj["type"] === "card") {
+        setCardNums(obj["card"]);
+      }
+
+      if (obj["type"] === "connect") {
+        setNumbers(obj["numbers"]);
+        setRoomName(obj["roomName"]);
+      }
+
+      if (obj["type"] === "add") {
+        console.log(obj["number"]);
+        setNumbers([...numbers, obj["number"] as number]);
+        if (obj["bingos"].includes(userName)) {
+          setStatus("ビンゴ!");
+        } else if (obj["reachs"].includes(userName)) {
+          setStatus("リーチ!");
+        }
+      }
+
+      if (obj["type"] === "reset") {
+        location.reload();
+      }
+    });
+
+    return () => socket.close();
+  }, numbers);
+
+  const isTurned = cardNums.map((v, i) => v.map((w, j) => numbers.includes(w)));
+
+  const [inputText, setInputText] = useState("");
 
   return (
     <div>
       <PageHeader />
-      <div tw="text-center my-4">
-        <div tw="text-3xl my-1">{roomName}</div>
-        <div tw="text-xl my-1">{userName}</div>
-        <div className={statusStyle}>
-          {isBingo ? "ビンゴ!" : isReach ? "リーチ!" : "　"}
+      {userName === "" ? (
+        <div tw="text-xl text-center my-6">
+          <div>ユーザー名を入力してください</div>
+          <input
+            type="text"
+            tw="my-2"
+            value={inputText}
+            className={formStyle}
+            onChange={(event) => setInputText(event.target.value)}
+          />
+          <br></br>
+          <button
+            tw="my-2"
+            className={formStyle}
+            onClick={() => {
+              setUserName(inputText);
+            }}
+          >
+            確定
+          </button>
         </div>
-      </div>
-      <CardComponent numbers={numbers} />
+      ) : (
+        <>
+          <div tw="text-center my-4">
+            <div tw="text-3xl my-1">{roomName}</div>
+            <div tw="text-xl my-1">{userName}</div>
+            <div className={statusStyle}>{status}</div>
+          </div>
+          <CardComponent numbers={cardNums} isTurned={isTurned} />
+        </>
+      )}
     </div>
   );
 };
